@@ -1,0 +1,45 @@
+id: 9c1e9381-79dd-4ddf-9570-b73a1dc59fe0
+name: Anomaly Sign In Event from an IP
+description: |
+  'Identifies anomalies event from a given IP address to an Application in the last hour.'
+severity: Medium
+requiredDataConnectors:
+  - connectorId: AzureActiveDirectory
+    dataTypes:
+      - SigninLogs 
+queryFrequency: 1h
+queryPeriod: 1h
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - InitialAccess
+relevantTechniques:
+  - T1078
+query: |
+let Data = (
+SigninLogs
+| where TimeGenerated >= ago(1h)
+// Counts the number of sign in events in the last hour every 15 minutes by IP
+| make-series EventCounts = count() on TimeGenerated from ago(1h) to now() step 15m by IPAddress 
+);
+let AnomalyAlert = (
+Data
+| extend (Anomalies, Score, Baseline) = series_decompose_anomalies(EventCounts,1.5,-1,'linefit')
+| mv-expand EventCounts,TimeGenerated,Anomalies to typeof(double),Baseline to typeof(long),Score to typeof(double)
+| where Anomalies > 0
+);
+AnomalyAlert
+entityMappings:
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: IPAddress
+  - entityType: CloudApplication
+    fieldMappings:
+      - identifier: Name
+        columnName: AppDisplayName
+customDetails:
+  Score: Score
+  Baseline: Baseline
+version: 1.0.0
+kind: Scheduled
