@@ -34,7 +34,7 @@ query: |
   | extend AuthSucceeded = tostring(parse_json(AuthenticationDetails)[0].succeeded)
   | where PasswordResult == "Correct Password" or AuthSucceeded == "true"
   | extend failureReason = tostring(Status.failureReason)
-  | summarize NewCountry = make_set(Location), LastObservedTime = max(TimeGenerated), AppName = make_set(AppDisplayName) by UserPrincipalName
+  | summarize NewCountry = make_set(Location), LastObservedTime = max(TimeGenerated), AppName = make_set(AppDisplayName) by UserPrincipalName, PasswordResult, AuthSucceeded, failureReason
   // Combining both tables by user
   | join kind=inner KnownUserCountry on UserPrincipalName
   // Compare both arrays and identify if the country has been observed in the past.
@@ -43,6 +43,7 @@ query: |
   // Count the new column to only alert if there is a difference between both arrays
   | where CountryDiffCount != 0
   | extend NewCountryEvent = CountryDiff
+  | summarize by UserPrincipalName, LastObservedTime, tostring(NewCountryEvent),tostring(KnownCountry), tostring(AppName), PasswordResult, AuthSucceeded, failureReason
 entityMappings:
   - entityType: Account
     fieldMappings:
@@ -52,6 +53,9 @@ customDetails:
   LastObservedTime: LastObservedTime
   AppName: AppName
   NewCountryEvent: NewCountryEvent
+  PasswordResult: PasswordResult
+  AuthSucceeded: AuthSucceeded
+  failureReason: failureReason
 eventGroupingSettings:
   aggregationKind: SingleAlert
 version: 1.0.0
