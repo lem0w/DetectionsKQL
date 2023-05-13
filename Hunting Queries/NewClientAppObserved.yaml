@@ -1,20 +1,42 @@
-// Creating a set of known client app used by a user
-let CommonClientUsed = (
-SigninLogs
-| where TimeGenerated >ago(7d)
-| where ResultType == 0
-| summarize BaselineClientApp =make_set(ClientAppUsed) by UserPrincipalName );
-// create a set to see the recent client app used by a user 
-let NewClient = (
-SigninLogs
-| where TimeGenerated >= ago(1h)
-| where ResultType == 0
-| summarize NewClient = make_set(ClientAppUsed) by UserPrincipalName
-);
-// Join both tables by user to prepare for compare
-CommonClientUsed
-| join kind=inner NewClient on UserPrincipalName
-// Compares both arrays to see if the new client set as any new clien app.
-| extend ClieAppDiff = set_difference(NewClient,BaselineClientApp)
-// | where ClieAppDiff != "[]" // One way to remove empty events.
-| where array_length( ClieAppDiff) > 0
+id: 5a0a749a-ca93-496a-9563-a916b13f7ceb
+name: New Cliet App Observed - WIP
+description: |
+  'Identifies new client app used by a user by comparing their activity from the last seven days.'
+requiredDataConnectors:
+  - connectorId: AzureActiveDirectory
+    dataTypes:
+      - SigninLogs
+tactics:
+  - InitialAccess
+relevantTechniques:
+  - T1078.004
+query: |
+  // Creating a set of known client app used by a user
+  let CommonClientUsed = (
+  SigninLogs
+  | where TimeGenerated >ago(7d)
+  | where ResultType == 0
+  | summarize BaselineClientApp =make_set(ClientAppUsed) by UserPrincipalName );
+  // create a set to see the recent client app used by a user 
+  let NewClient = (
+  SigninLogs
+  | where TimeGenerated >= ago(1h)
+  | where ResultType == 0
+  | summarize NewClient = make_set(ClientAppUsed) by UserPrincipalName
+  );
+  // Join both tables by user to prepare for compare
+  CommonClientUsed
+  | join kind=inner NewClient on UserPrincipalName
+  // Compares both arrays to see if the new client set as any new clien app.
+  | extend ClieAppDiff = set_difference(NewClient,BaselineClientApp)
+  // | where ClieAppDiff != "[]" // One way to remove empty events.
+  | where array_length( ClieAppDiff) > 0
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: FullName
+        columnName: PENDING
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: PENDING
