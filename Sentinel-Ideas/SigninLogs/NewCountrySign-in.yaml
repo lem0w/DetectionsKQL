@@ -53,7 +53,9 @@ entityMappings:
   - entityType: Account
     fieldMappings:
       - identifier: Name
-        columnName: UserPrincipalName
+        columnName: Name
+      - identifier: NTDomain
+        columnName: Domain     
 customDetails:
   LastObservedTime: LastObservedTime
   AppName: AppName
