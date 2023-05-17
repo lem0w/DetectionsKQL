@@ -8,12 +8,15 @@ requiredDataConnectors:
       - SigninLogs
 tactics:
   - InitialAccess
+  - Persistence
 relevantTechniques:
   - T1078.004
+  - T0859
 query: |
   // Creating a set of known client app used by a user
   let CommonClientUsed = (
   SigninLogs
+  // Increase Time as needed
   | where TimeGenerated >ago(7d)
   | where ResultType == 0
   | summarize BaselineClientApp =make_set(ClientAppUsed) by UserPrincipalName );
@@ -24,19 +27,24 @@ query: |
   | where ResultType == 0
   | summarize NewClient = make_set(ClientAppUsed) by UserPrincipalName
   );
-  // Join both tables by user to prepare for compare
+  // Join both tables by user to prepare for comparison
   CommonClientUsed
   | join kind=inner NewClient on UserPrincipalName
-  // Compares both arrays to see if the new client set as any new clien app.
+  // Compares both arrays and identifies which NewClient was not on the Baseline set.
   | extend ClieAppDiff = set_difference(NewClient,BaselineClientApp)
-  // | where ClieAppDiff != "[]" // One way to remove empty events.
+  // | where ClieAppDiff != "[]" // Just another way to remove empty events.
   | where array_length( ClieAppDiff) > 0
+  // Getting UserName and Domain
+  | extend Name = split(UserPrincipalName,"@",0),
+      Domain = split(UserPrincipalName,"@",1)
+  | mv-expand Name,Domain
 entityMappings:
   - entityType: Account
     fieldMappings:
-      - identifier: FullName
-        columnName: PENDING
-  - entityType: IP
-    fieldMappings:
-      - identifier: Address
-        columnName: PENDING
+      - identifier: Name
+        columnName: Name
+      - identifier: NTDomain
+        columnName: Domain 
+customDetails:
+  ClieAppDiff: ClieAppDiff
+version: 1.0.0
