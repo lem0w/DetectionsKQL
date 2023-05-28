@@ -1,0 +1,8 @@
+SigninLogs
+| extend BinTime = bin(TimeGenerated,10m)
+| sort by BinTime,UserPrincipalName
+| serialize TimeGenerated,BinTime,UserPrincipalName,IPAddress,ResultType
+| extend EventType = iff(ResultType !=0 , 1,0) // Giving failure a value of 1 and success 0
+| extend FailureCount = row_cumsum(EventType, ResultType != prev(ResultType))
+
+// work in progress (^-^)
