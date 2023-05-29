@@ -1,9 +1,11 @@
 SigninLogs
 | extend BinTime = bin(TimeGenerated,10m)
+| where not(ClientAppUsed has_any ("POP3","IMAP","SMTP")) // excluding legacy auth since its deprecated
 | sort by BinTime,UserPrincipalName
 | serialize TimeGenerated,BinTime,UserPrincipalName,IPAddress,ResultType
 | extend EventType = iff(ResultType !=0 , 1,0) // Giving failure a value of 1 and success 0
-| extend FailureCount = row_cumsum(EventType, ResultType != prev(ResultType))
+// WIP - trying to stop the count of failure events whenever the result is no longer a failure or same user or same rounded time
+| extend FailureCount = row_cumsum(EventType, ResultType != prev(ResultType) or UserPrincipalName !=prev(UserPrincipalName) or BinTime !=prev(BinTime))
 | where FailureCount > 2
 
 // work in progress (^-^)
