@@ -1,0 +1,14 @@
+// Azure Active Directory Backdoors: Identity Federation
+Ref: https://www.inversecos.com/2021/11/how-to-detect-azure-active-directory.html
+// Initial Idea would be to monitor for sign-in to the newly added custom domain
+AuditLogs
+| where OperationName contains "domain"
+| extend InitiatedBy = tostring(parse_json(tostring(InitiatedBy.user)).userPrincipalName)
+| where Result == "success"
+| extend DomainName = tostring(TargetResources[0].displayName)
+| summarize ModifiedProperties = make_set(parse_json(TargetResources[0].modifiedProperties)) by InitiatedBy, DomainName
+| join kind=inner (
+SigninLogs
+| where ResultType == "0"
+| extend UserDomain = tostring(parse_json(split(UserPrincipalName,"@",1)))
+| summarize by UserPrincipalName, IPAddress, tostring(LocationDetails),AppDisplayName,ResourceDisplayName,UserDomain) on $left.DomainName == $right.UserDomain
