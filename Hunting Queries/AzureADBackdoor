@@ -10,5 +10,5 @@ AuditLogs
 | join kind=inner (
 SigninLogs
 | where ResultType == "0"
-| extend UserDomain = tostring(parse_json(split(UserPrincipalName,"@",1)))
+| extend UserDomain = tostring(parse_json(split(UserPrincipalName,"@",1)[0]))
 | summarize by UserPrincipalName, IPAddress, tostring(LocationDetails),AppDisplayName,ResourceDisplayName,UserDomain) on $left.DomainName == $right.UserDomain
