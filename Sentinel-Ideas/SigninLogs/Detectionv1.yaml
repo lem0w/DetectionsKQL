@@ -1,0 +1,38 @@
+id: d971c6e8-d78e-40a9-9104-d7641a260aad
+name: Application accessing browser cookies.
+description: |
+  'Threat actors may steal browser cookies in order to hijack a user session. This query identifies when an application acccess a browser cookies.'
+severity: Medium
+requiredDataConnectors:
+  - connectorId: AzureActiveDirectory
+    dataTypes:
+      - SigninLogs 
+queryFrequency: 30m
+queryPeriod: 30m
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Collection
+relevantTechniques:
+  - T1185
+query: |
+  SecurityEvent
+  // Event ID for an object access attempt
+  | where EventID == 4663 
+  // Filter for cookie access
+  | where ObjectName contains "Cookies" 
+  // Filter for browser processes
+  | where ProcessName contains "browser" 
+    | summarize by TimeGenerated, Computer, Account, ProcessName, ObjectName
+entityMappings:
+  - entityType: Account
+    fieldMappings:
+      - identifier: Name
+        columnName: Name
+customDetails:
+  ProcessName: ProcessName
+  ObjectName: ObjectName
+eventGroupingSettings:
+  aggregationKind: SingleAlert
+version: 1.0.0
+kind: Scheduled
