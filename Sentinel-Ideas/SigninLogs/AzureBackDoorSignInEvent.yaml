@@ -36,7 +36,7 @@ query: |
   | mv-expand Name,Domain
 entityMappings:
   - entityType: Account
-  fieldMappings:
+    fieldMappings:
     - identifier: NTDomain 
       columnName: UserDomain
     - identifier: DisplayName  
